@@ -10,5 +10,10 @@ clear;
 omnicli
 
 echo -e $separator
+omnicli -h
 
+echo -e $separator
+omnicli -l
+
+echo -e $separator
 omnicli asdf

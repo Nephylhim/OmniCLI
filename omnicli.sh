@@ -32,10 +32,15 @@
 #     my_dir="$(dirname "$0")"
 # fi
 
+delimiter='■■';
+# configFile='~/.omnicli';
+configFile='./test/oc_config';
+
 #
 # ─── FUNCTIONS ──────────────────────────────────────────────────────────────────
 #
 
+# Print help
 function _oc_help() {
     cat << EOF
 Usage: $0 TBD
@@ -45,28 +50,72 @@ TODO
 EOF
 }
 
-function omnicli(){
-    if [ ! -e '~/.omnicli' ]; then
-        touch ~/.omnicli
-    fi
+# echo that ensure to write to the user terminal
+function _echot() {
+    >&2 echo $@
+}
 
+function _oc_find_command() {
+    cli=$1;
+    cmd=$2;
+    
+    if [[ $cli == "" ]]; then
+        _echot -e "cli must be specified\n";
+        _oc_help;
+        exit 1;
+    fi
+    if [[ $cmd == "" ]]; then
+        _echot -e "command must be specified\n";
+        _oc_help;
+        exit 1;
+    fi
+    
+    found=0;
+    while read line; do
+        # alias=${line%:*}
+        # pwd=${line#*:}
+        # if [[ $alias == $1 ]]; then
+        #     cd $pwd;
+        #     found=1
+        #     break;
+        # fi
+        lcli="$(awk -F $delimiter '{print $1}')";
+        _echot $lcli;
+    done < $configFile
+}
+
+function _oc_exec() {
+    _oc_find_command $1 $2
+    
+    return
+}
+
+#
+# ─── OMNICLI ────────────────────────────────────────────────────────────────────
+#
+
+function omnicli() {
+    if [ ! -e configFile ]; then
+        touch configFile
+    fi
+    
     if [[ $# == 0 ]]; then
         _oc_help
     fi
-
-
-
+    
+    
+    
     while [[ $# > 0 ]]; do
         arg=$1
         shift
-
+        
         case $arg in
             '-c'|'--config')    echo "change config file";;
             '-r'|'--register')  echo "add a new CLI";;
+            '-d'|'--delete')    echo "delete a CLI";;
+            '-h'|'--help')      _oc_help;;
             '-l'|'--list')      echo "list CLIs";;
-            *)                  echo "TODO";;
+            *)                  _oc_exec $@;;
         esac
     done
 }
-
-# omnicli $@
