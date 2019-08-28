@@ -1,3 +1,5 @@
+# shellcheck shell=bash
+
 # MIT License
 #
 # Copyright (c) 2019 Thomas Coussot
@@ -32,9 +34,10 @@
 #     my_dir="$(dirname "$0")"
 # fi
 
-delimiter='■■';
-# configFile='~/.omnicli';
-configFile='./test/oc_config';
+_ocDelimiter='■■';
+_ocConfigFile="$HOME/.omnicli";
+
+_ocPartsPlace=(['cliName']=1 ['cmdName']=2) # TODO
 
 #
 # ─── FUNCTIONS ──────────────────────────────────────────────────────────────────
@@ -52,40 +55,57 @@ EOF
 
 # echo that ensure to write to the user terminal
 function _echot() {
-    >&2 echo $@
+    >&1 echo -e "$@"
+}
+
+function _oc_command_exists() {
+    # TODO
+    return 0;
 }
 
 function _oc_find_command() {
     cli=$1;
-    cmd=$2;
+    cmdName=$2;
     
     if [[ $cli == "" ]]; then
-        _echot -e "cli must be specified\n";
+        _echot "cli must be specified\\n";
         _oc_help;
-        exit 1;
+        return 1;
     fi
-    if [[ $cmd == "" ]]; then
-        _echot -e "command must be specified\n";
+    if [[ $cmdName == "" ]]; then
+        _echot "command must be specified\\n";
         _oc_help;
-        exit 1;
+        return 1;
     fi
     
-    found=0;
-    while read line; do
-        # alias=${line%:*}
-        # pwd=${line#*:}
-        # if [[ $alias == $1 ]]; then
-        #     cd $pwd;
-        #     found=1
-        #     break;
+    cmd="";
+    while read -r line; do
+        # if [[ $line == "·"* ]]; then
+        #     # echo "group line: $line => continue"
+        #     continue;
         # fi
-        lcli="$(awk -F $delimiter '{print $1}')";
-        _echot $lcli;
-    done < $configFile
+        # echo "line: $line"
+
+        lCli="$(echo "$line" | awk -F $_ocDelimiter '{print $1}')";
+        lCmdName="$(echo "$line" | awk -F $_ocDelimiter '{print $2}')";
+        # _echot $lCli;
+        # _echot $lCmdName;
+        if [[ $lCli == "$cli" && $lCmdName == "$cmdName" ]]; then
+            cmd="$(echo "$line" | awk -F $_ocDelimiter '{print $3}')";
+            break;
+        fi
+    done < "$_ocConfigFile"
+
+    if [[ $cmd == "" ]]; then
+        _echot "This command does not exist";
+        return 1;
+    fi
+
+    eval "$cmd"
 }
 
 function _oc_exec() {
-    _oc_find_command $1 $2
+    _oc_find_command "$1" "$2"
     
     return
 }
@@ -95,27 +115,32 @@ function _oc_exec() {
 #
 
 function omnicli() {
-    if [ ! -e configFile ]; then
-        touch configFile
-    fi
+    # if [ ! -e _ocConfigFile ]; then
+    #     touch _ocConfigFile
+    # fi
     
     if [[ $# == 0 ]]; then
         _oc_help
+        return 1;
     fi
     
     
-    
-    while [[ $# > 0 ]]; do
+    args=()
+    action="" # TODO !!
+    while [[ $# -gt 0 ]]; do
         arg=$1
-        shift
         
         case $arg in
-            '-c'|'--config')    echo "change config file";;
+            '-c'|'--config')    shift; _ocConfigFile=$1;;
             '-r'|'--register')  echo "add a new CLI";;
             '-d'|'--delete')    echo "delete a CLI";;
-            '-h'|'--help')      _oc_help;;
+            '-h'|'--help')      _oc_help; return;;
             '-l'|'--list')      echo "list CLIs";;
-            *)                  _oc_exec $@;;
+            *)                  args+=("$arg");;
         esac
+
+        shift
     done
+
+    _oc_exec "${args[@]}";
 }
