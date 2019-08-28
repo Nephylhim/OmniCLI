@@ -1,0 +1,2 @@
+test■■echo■■echo "test"■■just echo "test"
+cron■■status■■systemctl status cron■■check cron service status
