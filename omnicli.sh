@@ -22,6 +22,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+
 #
 # ─── INIT ───────────────────────────────────────────────────────────────────────
 #
@@ -34,10 +35,29 @@
 #     my_dir="$(dirname "$0")"
 # fi
 
-_ocDelimiter='■■';
-_ocConfigFile="$HOME/.omnicli";
+# Set debug to 0 by default
+if [[ -z $_OC_DEBUG ]]; then
+    _OC_DEBUG=0;
+fi
+# Set debug file default
+if [[ -z $_OC_DEBUG_FILE ]]; then
+    _OC_DEBUG_FILE="/tmp/ocDebug.log";
+fi
 
-_ocPartsPlace=(['cliName']=1 ['cmdName']=2) # TODO
+# Set default delimiter if it isn't set
+if [[ -z $_OC_DELIMITER ]]; then
+    _OC_DELIMITER='■■';
+fi
+
+# Set default config file path if it isn't set
+if [[ -z $_OC_CONFIG_FILE ]]; then
+    _OC_CONFIG_FILE="$HOME/.omnicli";
+fi
+
+_OC_STRUCT_CLI='1'
+_OC_STRUCT_CMDNAME='2'
+_OC_STRUCT_CMD='3'
+_OC_STRUCT_DESC='4'
 
 #
 # ─── FUNCTIONS ──────────────────────────────────────────────────────────────────
@@ -58,56 +78,80 @@ function _echot() {
     >&1 echo -e "$@"
 }
 
+function _debug() {
+    if [[ $_OC_DEBUG == 1 ]]; then
+        echo -e "$@" >> "$_OC_DEBUG_FILE"
+    fi
+}
+
+function _parse_config() {
+    local line=$1;
+    local part=$2;
+
+    case $part in
+        'cli')          echo "$line" | awk -F $_OC_DELIMITER "{print \$$_OC_STRUCT_CLI}";;
+        'cmdName')      echo "$line" | awk -F $_OC_DELIMITER "{print \$$_OC_STRUCT_CMDNAME}";;
+        'cmd')          echo "$line" | awk -F $_OC_DELIMITER "{print \$$_OC_STRUCT_CMD}";;
+        'description')  echo "$line" | awk -F $_OC_DELIMITER "{print \$$_OC_STRUCT_DESC}";;
+        *)              echo "";;
+    esac
+}
+
 function _oc_command_exists() {
-    # TODO
+    local cli=$1;
+    local cmdName=$2;
+    
+    if ! grep -Fq "$cli$_OC_DELIMITER$cmdName" "$_OC_CONFIG_FILE"; then
+        return 1;
+    fi
+    
     return 0;
 }
 
 function _oc_find_command() {
-    cli=$1;
-    cmdName=$2;
+    local cli=$1;
+    local cmdName=$2;
     
-    if [[ $cli == "" ]]; then
+    local cmd="";
+    while read -r line; do
+        lCli="$(_parse_config "$line" 'cli')"
+        lCmdName="$(_parse_config "$line" 'cmdName')";
+        
+        if [[ $lCli == "$cli" && $lCmdName == "$cmdName" ]]; then
+            cmd="$(echo "$line" | awk -F $_OC_DELIMITER '{print $3}')";
+            break;
+        fi
+    done < "$_OC_CONFIG_FILE"
+    
+    if [[ $cmd == "" ]]; then
+        _echot "This command does not exist";
+        return 1;
+    fi
+    
+    eval "$cmd"
+    return $?;
+}
+
+function _oc_exec() {
+    if [ $# -lt 1 ]; then
         _echot "cli must be specified\\n";
         _oc_help;
         return 1;
     fi
-    if [[ $cmdName == "" ]]; then
+    if [ $# -lt 2 ]; then
         _echot "command must be specified\\n";
         _oc_help;
         return 1;
     fi
     
-    cmd="";
-    while read -r line; do
-        # if [[ $line == "·"* ]]; then
-        #     # echo "group line: $line => continue"
-        #     continue;
-        # fi
-        # echo "line: $line"
-
-        lCli="$(echo "$line" | awk -F $_ocDelimiter '{print $1}')";
-        lCmdName="$(echo "$line" | awk -F $_ocDelimiter '{print $2}')";
-        # _echot $lCli;
-        # _echot $lCmdName;
-        if [[ $lCli == "$cli" && $lCmdName == "$cmdName" ]]; then
-            cmd="$(echo "$line" | awk -F $_ocDelimiter '{print $3}')";
-            break;
-        fi
-    done < "$_ocConfigFile"
-
-    if [[ $cmd == "" ]]; then
-        _echot "This command does not exist";
+    if ! _oc_command_exists "$1" "$2"; then
+        _echot "Command not found"
+        # TODO: show available commands
         return 1;
     fi
-
-    eval "$cmd"
-}
-
-function _oc_exec() {
-    _oc_find_command "$1" "$2"
     
-    return
+    _oc_find_command "$1" "$2"
+    return $?;
 }
 
 #
@@ -115,32 +159,42 @@ function _oc_exec() {
 #
 
 function omnicli() {
-    # if [ ! -e _ocConfigFile ]; then
-    #     touch _ocConfigFile
-    # fi
-    
     if [[ $# == 0 ]]; then
         _oc_help
         return 1;
     fi
     
-    
-    args=()
-    action="" # TODO !!
+    local args=();
+    local action="exec";
     while [[ $# -gt 0 ]]; do
-        arg=$1
+        local arg=$1;
+        shift;
         
         case $arg in
-            '-c'|'--config')    shift; _ocConfigFile=$1;;
-            '-r'|'--register')  echo "add a new CLI";;
-            '-d'|'--delete')    echo "delete a CLI";;
-            '-h'|'--help')      _oc_help; return;;
-            '-l'|'--list')      echo "list CLIs";;
+            '-c'|'--config')    _OC_CONFIG_FILE=$1; shift;;
+            '-r'|'--register')  action='register';;
+            '-d'|'--delete')    action='delete';;
+            '-h'|'--help')      action='help';;
+            '-l'|'--list')      action='list';;
+            '--debug')          _OC_DEBUG=1;;
             *)                  args+=("$arg");;
         esac
-
-        shift
     done
+    
+    _debug "Configuration file: $_OC_CONFIG_FILE"
+    if [ ! -e "$_OC_CONFIG_FILE" ]; then
+        _debug "Configuration file not found, creating it."
+        touch "$_OC_CONFIG_FILE";
+    fi
+    
+    _debug "action=$action; args=(${args[*]})"
+    case $action in
+        'register') echo "TODO";;
+        'delete')   echo "TODO";;
+        'list')     echo "list CLIs"; echo "TODO";;
+        'exec')     _oc_exec "${args[@]}";;
+        'help')     _oc_help;;
+    esac
 
-    _oc_exec "${args[@]}";
+    return $?;
 }
