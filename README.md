@@ -33,3 +33,4 @@ A debug helper is available: `test/debug.sh`. TODO: complete
 * Use parameters in commands
 * Nested commands
 * Autocompletion
+* command order for listing

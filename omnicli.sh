@@ -54,6 +54,16 @@ if [[ -z $_OC_CONFIG_FILE ]]; then
     _OC_CONFIG_FILE="$HOME/.omnicli";
 fi
 
+
+# Set default colors
+if [[ -z $_OC_COLOR_1 ]]; then
+    _OC_COLOR_1='\033[0;31m'; # red
+fi
+if [[ -z $_OC_COLOR_2 ]]; then
+    _OC_COLOR_2='\033[1;34m'; # red
+fi
+_NC='\033[0m' # No Color
+
 _OC_STRUCT_CLI='1'
 _OC_STRUCT_CMDNAME='2'
 _OC_STRUCT_CMD='3'
@@ -64,6 +74,7 @@ _OC_STRUCT_DESC='4'
 #
 
 # Print help
+# TODO: contextualize help if a scope is defined
 function _oc_help() {
     cat << EOF
 Usage: $0 TBD
@@ -97,18 +108,28 @@ function _parse_config() {
     esac
 }
 
+function _oc_cli_exists() {
+    local cli=$1;
+
+    if ! grep -q "^$cli" "$_OC_CONFIG_FILE"; then
+        return 1;
+    fi
+
+    return 0;
+}
+
 function _oc_command_exists() {
     local cli=$1;
     local cmdName=$2;
     
-    if ! grep -Fq "$cli$_OC_DELIMITER$cmdName" "$_OC_CONFIG_FILE"; then
+    if ! grep -q "^$cli$_OC_DELIMITER$cmdName" "$_OC_CONFIG_FILE"; then
         return 1;
     fi
     
     return 0;
 }
 
-function _oc_find_command() {
+function _oc_exec_cli_cmd() {
     local cli=$1;
     local cmdName=$2;
     
@@ -132,6 +153,53 @@ function _oc_find_command() {
     return $?;
 }
 
+# TODO: function sort config file
+
+function _oc_list_clis(){
+    local clis;
+    clis="$(sort < "$_OC_CONFIG_FILE" | awk -F '■■' '{print $1}' | uniq)";
+
+    _echot "Available CLIs:";
+    for cli in $clis; do
+        _echot "    - $cli";
+    done
+
+    return $?;
+}
+
+function _oc_list_cli_comands(){
+    local cli=$1;
+
+    if ! _oc_cli_exists "$cli"; then
+        _echot "This CLI ($cli) does not exist"
+        _debug "CLI $cli does not exist"
+        return 1;
+    fi
+
+    _echot "Available commands for $_OC_COLOR_1$cli$_NC:";
+
+    local commands;
+    commands="$(grep "^$cli" < "$_OC_CONFIG_FILE" | sort | awk -F '■■' "{printf(\"    $_OC_COLOR_2%s$_NC:%s\\n\", \$$_OC_STRUCT_CMDNAME, \$$_OC_STRUCT_DESC)}")";
+    _echot "$(echo -e "$commands" | column -s':' -te)";
+
+    return $?;
+}
+
+function _oc_list() {
+    local scope=$1;
+
+    _debug "list scope: '$scope'"
+    if [ -z "$scope" ]; then
+        _debug "list CLIs"
+        _oc_list_clis
+    else
+        _debug "list CLI commands"
+        _oc_list_cli_comands "$scope";
+    fi
+
+    return $?;
+}
+
 function _oc_exec() {
     if [ $# -lt 1 ]; then
         _echot "cli must be specified\\n";
@@ -144,13 +212,19 @@ function _oc_exec() {
         return 1;
     fi
     
+    if ! _oc_cli_exists "$1"; then
+        _echot "This CLI ($cli) does not exist."
+        _debug "CLI $cli does not exist"
+        return 1;
+    fi
     if ! _oc_command_exists "$1" "$2"; then
-        _echot "Command not found"
-        # TODO: show available commands
+        _echot "This command does not exist."
+        _debug "Command $2 does not exist"
+        _oc_list_cli_comands "$1"
         return 1;
     fi
     
-    _oc_find_command "$1" "$2"
+    _oc_exec_cli_cmd "$1" "$2"
     return $?;
 }
 
@@ -191,7 +265,7 @@ function omnicli() {
     case $action in
         'register') echo "TODO";;
         'delete')   echo "TODO";;
-        'list')     echo "list CLIs"; echo "TODO";;
+        'list')     _oc_list "${args[@]}";;
         'exec')     _oc_exec "${args[@]}";;
         'help')     _oc_help;;
     esac

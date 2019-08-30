@@ -27,10 +27,22 @@ function teardown() {
 }
 
 @test "List CLIs" {
-    skip
-    run omnicli -l
+    run omnicli -c oc_config -l
     [ "$status" -eq 0 ]
-    [ $(expr "${lines[0]}" : "Test") -ne 0 ]
+    [ $(expr "${lines[0]}" : "Available CLIs:") -ne 0 ]
+    [ $(expr "${lines[1]}" : "    - cron") -ne 0 ]
+}
+
+@test "List CLI commands" {
+    run omnicli -c oc_config test -l
+    [ "$status" -eq 0 ]
+    [ $(expr "${lines[0]}" : ".*test.*:") -ne 0 ] # Colors are captured by expr
+    [ $(expr "${lines[1]}" : ".*echo.*just echo \"test\"") -ne 0 ]
+}
+
+@test "List inexisting CLI commands" {
+    run omnicli -c oc_config poney -l
+    [ "$status" -eq 1 ]
 }
 
 @test "Test omnicli test:echo" {
