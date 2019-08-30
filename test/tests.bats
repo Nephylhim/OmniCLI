@@ -4,6 +4,7 @@
 
 function setup() {
     cp oc_config_test oc_config
+    _OC_AUTO_REGISTER=0;
     >&2 source ../omnicli.sh
 }
 

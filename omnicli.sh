@@ -54,6 +54,11 @@ if [[ -z $_OC_CONFIG_FILE ]]; then
     _OC_CONFIG_FILE="$HOME/.omnicli";
 fi
 
+# Set auto register default
+if [[ -z $_OC_AUTO_REGISTER ]]; then
+    _OC_AUTO_REGISTER=1;
+fi
+
 
 # Set default colors
 if [[ -z $_OC_COLOR_1 ]]; then
@@ -93,6 +98,7 @@ function _oc_parse_config() {
 
     case $part in
         'cli')          echo "$line" | awk -F $_OC_DELIMITER "{print \$$_OC_STRUCT_CLI}";;
+        'order')        echo "$line" | awk -F $_OC_DELIMITER "{print \$$_OC_STRUCT_CMDORDER}";;
         'cmdName')      echo "$line" | awk -F $_OC_DELIMITER "{print \$$_OC_STRUCT_CMDNAME}";;
         'cmd')          echo "$line" | awk -F $_OC_DELIMITER "{print \$$_OC_STRUCT_CMD}";;
         'description')  echo "$line" | awk -F $_OC_DELIMITER "{print \$$_OC_STRUCT_DESC}";;
@@ -100,7 +106,7 @@ function _oc_parse_config() {
     esac
 }
 
-function _oc_cli_exists() {
+function _oc_verify_cli_exists() {
     local cli=$1;
 
     if ! grep -Eq "^$cli$_OC_DELIMITER" "$_OC_CONFIG_FILE"; then
@@ -110,12 +116,13 @@ function _oc_cli_exists() {
     return 0;
 }
 
-function _oc_command_exists() {
+function _oc_verify_command_exists() {
     local cli=$1;
     local cmdName=$2;
     
     # shellcheck disable=SC1087
-    if ! grep -Eq "^$cli$_OC_DELIMITER[0-9]+$_OC_DELIMITER$cmdName$_OC_DELIMITER" "$_OC_CONFIG_FILE"; then
+    # if ! grep -Eq "^$cli$_OC_DELIMITER[0-9]+$_OC_DELIMITER$cmdName$_OC_DELIMITER" "$_OC_CONFIG_FILE"; then
+    if ! grep -Eq "^$cli$_OC_DELIMITER.{2,4}$_OC_DELIMITER$cmdName$_OC_DELIMITER" "$_OC_CONFIG_FILE"; then
         return 1;
     fi
     
@@ -139,7 +146,8 @@ function _oc_find_cli_cmd() {
 
     local line;
     # shellcheck disable=SC1087
-    line="$(grep -E "^$cli$_OC_DELIMITER[0-9]+$_OC_DELIMITER$cmdName" < "$_OC_CONFIG_FILE")"
+    line="$(grep -E "^$cli$_OC_DELIMITER.{2,4}$_OC_DELIMITER$cmdName" < "$_OC_CONFIG_FILE")"
+    _debug "command line: $line"
 
     echo "$(_oc_parse_config "$line" 'cmd')"
 }
@@ -172,7 +180,7 @@ function _oc_list_clis(){
 function _oc_list_cli_comands(){
     local cli=$1;
 
-    if ! _oc_cli_exists "$cli"; then
+    if ! _oc_verify_cli_exists "$cli"; then
         _echot "This CLI ($cli) does not exist"
         _debug "CLI $cli does not exist"
         return 1;
@@ -228,6 +236,9 @@ function _oc_add() {
 
     local order;
     order=$(($(_oc_count_cli_commands "$cli")+1))
+    if [ $order -lt 10 ]; then
+        order="0$order";
+    fi
     _debug "order: $order"
 
     local line;
@@ -236,8 +247,10 @@ function _oc_add() {
 
     echo "$line" >> "$_OC_CONFIG_FILE";
 
-    _echot "Command $cmdName is registered!\\n"
+    _echot "Command $cmdName is created!\\n"
     _oc_list_cli_comands "$cli";
+
+    # TODO: auto register if new cli
 
     return 0;
 }
@@ -248,12 +261,12 @@ function _oc_delete() {
 
     # TODO: delete whole cli
 
-    if ! _oc_cli_exists "$1"; then
+    if ! _oc_verify_cli_exists "$1"; then
         _echot "This CLI ($cli) does not exist."
         _debug "CLI $cli does not exist"
         return 1;
     fi
-    if ! _oc_command_exists "$1" "$2"; then
+    if ! _oc_verify_command_exists "$1" "$2"; then
         _echot "This command does not exist."
         _debug "Command $2 does not exist"
         _oc_list_cli_comands "$1"
@@ -270,6 +283,19 @@ function _oc_delete() {
     return 0;
 }
 
+function _oc_register() {
+    # TODO: if a scope is defined, only register the scope
+    # TODO: verify command doesn't already exist
+    
+    for cli in $(awk -F "$_OC_DELIMITER" '{print $1}' < "$_OC_CONFIG_FILE" | uniq); do
+        local al;
+        al="alias $cli='omnicli -c $_OC_CONFIG_FILE $cli'"
+        eval "$al";
+    done
+
+    return 0;
+}
+
 function _oc_exec() {
     if [ $# -lt 1 ]; then
         _echot "cli must be specified\\n";
@@ -282,12 +308,12 @@ function _oc_exec() {
         return 1;
     fi
     
-    if ! _oc_cli_exists "$1"; then
+    if ! _oc_verify_cli_exists "$1"; then
         _echot "This CLI ($cli) does not exist."
         _debug "CLI $cli does not exist"
         return 1;
     fi
-    if ! _oc_command_exists "$1" "$2"; then
+    if ! _oc_verify_command_exists "$1" "$2"; then
         _echot "This command does not exist."
         _debug "Command $2 does not exist"
         _oc_list_cli_comands "$1"
@@ -318,6 +344,7 @@ function omnicli() {
             '-c'|'--config')    _OC_CONFIG_FILE=$1; shift;;
             '-a'|'--add')       action='add';;
             '-d'|'--delete')    action='delete';;
+            '-r'|'--register')  action='register';;
             '-h'|'--help')      action='help';;
             '-l'|'--list')      action='list';;
             '--debug')          _OC_DEBUG=1;;
@@ -335,6 +362,7 @@ function omnicli() {
     case $action in
         'add')      _oc_add "${args[@]}";;
         'delete')   _oc_delete "${args[@]}";;
+        'register') _oc_register;;
         'list')     _oc_list "${args[@]}";;
         'exec')     _oc_exec "${args[@]}";;
         'help')     _oc_help;;
@@ -342,3 +370,10 @@ function omnicli() {
 
     return $?;
 }
+
+# ────────────────────────────────────────────────────────────────────────────────
+# ────────────────────────────────────────────────────────────────────────────────
+
+if [[ $_OC_AUTO_REGISTER == 1 ]]; then
+    omnicli -r
+fi

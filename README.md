@@ -24,13 +24,18 @@ A debug helper is available: `test/debug.sh`. TODO: complete
 
 ## Roadmap
 
-* MVP
-	* Execute commands through omnicli
-	* Add and remove commands/CLIs
-	* Listing clis and commands
-	* Use external config file
-* Register CLIs as aliases
-* Use parameters in commands
-* Nested commands
-* Autocompletion
-* command order for listing
+* [x] MVP
+	* [x] Execute commands through omnicli
+	* [x] Add and remove commands/CLIs
+	* [x] Listing clis and commands
+	* [x] Use external config file
+* [ ] Register CLIs as aliases
+	* [x] base register
+	* [ ] register only wanted CLIs
+* [ ] Update commands
+* [ ] Use parameters in commands
+* [ ] Nested commands
+* [ ] Autocompletion
+* [ ] Reorder commands for listing
+* [ ] commands shortcuts/aliases?
+* [ ] importing / exporting CLIs
