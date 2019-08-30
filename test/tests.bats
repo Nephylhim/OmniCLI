@@ -44,9 +44,24 @@ function teardown() {
     [ "$status" -eq 1 ]
 }
 
+@test "Test failing command" {
+    run omnicli -c oc_config test fail
+    [ "$status" -eq 1 ]
+    [ $(expr "$output" : "it fail!") -ne 0 ]
+}
+
 @test "Test omnicli cron:status" {
     run omnicli -c oc_config cron status
     [ "$status" -eq 0 ]
     [ $(expr "$output" : ".*cron.service") -ne 0 ]
 }
 
+@test "register a command" {
+    # TODO
+    skip
+}
+
+@test "delete a command" {
+    # TODO
+    skip
+}

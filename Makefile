@@ -9,3 +9,7 @@ test:
 
 watch:
 	reflex -d none -s -r '.sh|.bats' -- bash -c "clear; make test"
+
+debug:
+	cd test;\
+	./debug.sh ${CONFFILE}
