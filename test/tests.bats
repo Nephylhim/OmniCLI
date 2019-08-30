@@ -56,6 +56,11 @@ function teardown() {
     [ "$status" -eq 1 ]
 }
 
+@test "Test inexisting command (starts with an existing command name)" {
+    run omnicli -c oc_config test echoy
+    [ "$status" -eq 1 ]
+}
+
 @test "Test failing command" {
     run omnicli -c oc_config test fail
     [ "$status" -eq 1 ]

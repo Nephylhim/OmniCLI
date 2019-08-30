@@ -65,9 +65,10 @@ fi
 _NC='\033[0m' # No Color
 
 _OC_STRUCT_CLI='1'
-_OC_STRUCT_CMDNAME='2'
-_OC_STRUCT_CMD='3'
-_OC_STRUCT_DESC='4'
+_OC_STRUCT_CMDORDER='2'
+_OC_STRUCT_CMDNAME='3'
+_OC_STRUCT_CMD='4'
+_OC_STRUCT_DESC='5'
 
 #
 # ─── FUNCTIONS ──────────────────────────────────────────────────────────────────
@@ -95,7 +96,7 @@ function _debug() {
     fi
 }
 
-function _parse_config() {
+function _oc_parse_config() {
     local line=$1;
     local part=$2;
 
@@ -111,7 +112,7 @@ function _parse_config() {
 function _oc_cli_exists() {
     local cli=$1;
 
-    if ! grep -q "^$cli" "$_OC_CONFIG_FILE"; then
+    if ! grep -Eq "^$cli$_OC_DELIMITER" "$_OC_CONFIG_FILE"; then
         return 1;
     fi
 
@@ -122,11 +123,24 @@ function _oc_command_exists() {
     local cli=$1;
     local cmdName=$2;
     
-    if ! grep -q "^$cli$_OC_DELIMITER$cmdName" "$_OC_CONFIG_FILE"; then
+    # shellcheck disable=SC1087
+    if ! grep -Eq "^$cli$_OC_DELIMITER[0-9]+$_OC_DELIMITER$cmdName$_OC_DELIMITER" "$_OC_CONFIG_FILE"; then
         return 1;
     fi
     
     return 0;
+}
+
+# shellcheck disable=SC2005
+function _oc_find_cli_cmd() {
+    local cli=$1;
+    local cmdName=$2;
+
+    local line;
+    # shellcheck disable=SC1087
+    line="$(grep -E "^$cli$_OC_DELIMITER[0-9]+$_OC_DELIMITER$cmdName" < "$_OC_CONFIG_FILE")"
+
+    echo "$(_oc_parse_config "$line" 'cmd')"
 }
 
 function _oc_exec_cli_cmd() {
@@ -134,20 +148,7 @@ function _oc_exec_cli_cmd() {
     local cmdName=$2;
     
     local cmd="";
-    while read -r line; do
-        lCli="$(_parse_config "$line" 'cli')"
-        lCmdName="$(_parse_config "$line" 'cmdName')";
-        
-        if [[ $lCli == "$cli" && $lCmdName == "$cmdName" ]]; then
-            cmd="$(echo "$line" | awk -F $_OC_DELIMITER '{print $3}')";
-            break;
-        fi
-    done < "$_OC_CONFIG_FILE"
-    
-    if [[ $cmd == "" ]]; then
-        _echot "This command does not exist";
-        return 1;
-    fi
+    cmd="$(_oc_find_cli_cmd "$cli" "$cmdName")"
     
     eval "$cmd"
     return $?;
@@ -157,7 +158,7 @@ function _oc_exec_cli_cmd() {
 
 function _oc_list_clis(){
     local clis;
-    clis="$(sort < "$_OC_CONFIG_FILE" | awk -F '■■' '{print $1}' | uniq)";
+    clis="$(sort < "$_OC_CONFIG_FILE" | awk -F '■■' "{print \$$_OC_STRUCT_CLI}" | uniq)";
 
     _echot "Available CLIs:";
     for cli in $clis; do
