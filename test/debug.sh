@@ -13,16 +13,37 @@ debugFile="/tmp/ocDebug.log"
 
 while true; do
     echo -en "${BLUE}omnicli>${NC} "
-    read -r input
-    read -ra cmd <<< "$input"
+    read -ra cmd
+
+    # Correctly spliting args in case of argument encapsulated in "".
+    args=();
+    buffer="";
+    for c in "${cmd[@]}"; do
+        if [ -z $buffer ]; then
+            if [[ $c == "\""* ]]; then
+                buffer=$c
+            else
+                args+=("$c");
+            fi
+        else
+            if [[ $c == *"\"" ]]; then
+                buffer+=" $c";
+                args+=("$(echo "$buffer" | tr -d '"')");
+                buffer=""
+            else
+                buffer+=" $c";
+            fi
+        fi
+    done
+
     export _OC_DEBUG=1
     rm "$debugFile" 2> /dev/null
     source ../omnicli.sh
 
     if [ ! -z "$confFile" ]; then
-        omnicli -c "$confFile" --debug "${cmd[@]}"
+        omnicli -c "$confFile" --debug "${args[@]}"
     else
-        omnicli --debug "${cmd[@]}"
+        omnicli --debug "${args[@]}"
     fi
     status=$?
 

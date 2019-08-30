@@ -74,17 +74,6 @@ _OC_STRUCT_DESC='5'
 # ─── FUNCTIONS ──────────────────────────────────────────────────────────────────
 #
 
-# Print help
-# TODO: contextualize help if a scope is defined
-function _oc_help() {
-    cat << EOF
-Usage: $0 TBD
-
-TODO
-
-EOF
-}
-
 # echo that ensure to write to the user terminal
 function _echot() {
     >&1 echo -e "$@"
@@ -95,6 +84,8 @@ function _debug() {
         echo -e "$@" >> "$_OC_DEBUG_FILE"
     fi
 }
+
+# ────────────────────────────────────────────────────────────────────────────────
 
 function _oc_parse_config() {
     local line=$1;
@@ -130,6 +121,16 @@ function _oc_command_exists() {
     
     return 0;
 }
+
+function _oc_count_cli_commands() {
+    local cli=$1;
+
+    local count;
+    count="$(grep -c "^$cli$_OC_DELIMITER" "$_OC_CONFIG_FILE")"
+    echo "$count";
+}
+
+# ────────────────────────────────────────────────────────────────────────────────
 
 # shellcheck disable=SC2005
 function _oc_find_cli_cmd() {
@@ -186,6 +187,19 @@ function _oc_list_cli_comands(){
     return $?;
 }
 
+# ────────────────────────────────────────────────────────────────────────────────
+
+# Print help
+# TODO: contextualize help if a scope is defined
+function _oc_help() {
+    cat << EOF
+Usage: $0 TBD
+
+TODO
+
+EOF
+}
+
 function _oc_list() {
     local scope=$1;
 
@@ -199,6 +213,61 @@ function _oc_list() {
     fi
 
     return $?;
+}
+
+function _oc_add() {
+    local cli=$1;
+    local cmdName=$2;
+    local cmd=$3;
+    local desc=$4;
+
+    if [ $# -lt 4 ]; then
+        _echot "There aren't enough arguments to create a new command."
+        _oc_help;
+    fi
+
+    local order;
+    order=$(($(_oc_count_cli_commands "$cli")+1))
+    _debug "order: $order"
+
+    local line;
+    line="$cli$_OC_DELIMITER$order$_OC_DELIMITER$cmdName$_OC_DELIMITER$cmd$_OC_DELIMITER$desc"
+    _debug "new config line:\\n$line"
+
+    echo "$line" >> "$_OC_CONFIG_FILE";
+
+    _echot "Command $cmdName is registered!\\n"
+    _oc_list_cli_comands "$cli";
+
+    return 0;
+}
+
+function _oc_delete() {
+    local cli=$1;
+    local cmdName=$2;
+
+    # TODO: delete whole cli
+
+    if ! _oc_cli_exists "$1"; then
+        _echot "This CLI ($cli) does not exist."
+        _debug "CLI $cli does not exist"
+        return 1;
+    fi
+    if ! _oc_command_exists "$1" "$2"; then
+        _echot "This command does not exist."
+        _debug "Command $2 does not exist"
+        _oc_list_cli_comands "$1"
+        return 1;
+    fi
+
+    local line;
+    line="$(_oc_find_cli_cmd "$cli" "$cmdName")"
+    sed -i "/$line/d" "$_OC_CONFIG_FILE"
+
+    _debug "config:\\n$(cat "$_OC_CONFIG_FILE")"
+
+    _echot "The command $cli $cmdName have been deleted."
+    return 0;
 }
 
 function _oc_exec() {
@@ -247,7 +316,7 @@ function omnicli() {
         
         case $arg in
             '-c'|'--config')    _OC_CONFIG_FILE=$1; shift;;
-            '-r'|'--register')  action='register';;
+            '-a'|'--add')       action='add';;
             '-d'|'--delete')    action='delete';;
             '-h'|'--help')      action='help';;
             '-l'|'--list')      action='list';;
@@ -264,8 +333,8 @@ function omnicli() {
     
     _debug "action=$action; args=(${args[*]})"
     case $action in
-        'register') echo "TODO";;
-        'delete')   echo "TODO";;
+        'add')      _oc_add "${args[@]}";;
+        'delete')   _oc_delete "${args[@]}";;
         'list')     _oc_list "${args[@]}";;
         'exec')     _oc_exec "${args[@]}";;
         'help')     _oc_help;;

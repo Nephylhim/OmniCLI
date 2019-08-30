@@ -74,11 +74,17 @@ function teardown() {
 }
 
 @test "register a command" {
-    # TODO
-    skip
+    run omnicli -c oc_config -a test register "echo register" "just echo register"
+    [ "$status" -eq 0 ]
+    run omnicli -c oc_config test -l
+    [ "$status" -eq 0 ]
+    [ $(expr "${lines[4]}" : ".*register.*just echo register") -ne 0 ]
 }
 
 @test "delete a command" {
-    # TODO
-    skip
+    run omnicli -c oc_config -d test todel
+    [ "$status" -eq 0 ]
+    run omnicli -c oc_config test -l
+    [ "$status" -eq 0 ]
+    [ $(expr "${lines[3]}" : ".*todel.*command to delete") -eq 0 ]
 }

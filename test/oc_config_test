@@ -1,3 +1,4 @@
-test■■2■■fail■■echo "it fail!"; return 1■■a failing command
-test■■1■■echo■■echo "test"■■just echo "test"
-cron■■1■■status■■systemctl status cron■■check cron service status
+test■■02■■fail■■echo "it fail!"; return 1■■a failing command
+test■■01■■echo■■echo "test"■■just echo "test"
+test■■03■■todel■■return 0■■a command to delete
+cron■■01■■status■■systemctl status cron■■check cron service status
