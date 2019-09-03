@@ -293,8 +293,7 @@ function _oc_register() {
     # TODO: verify command doesn't already exist
 
     for cli in $(awk -F "$_OC_DELIMITER" '{print $1}' < "$_OC_CONFIG_FILE" | uniq); do
-        local al;
-        al="alias $cli='omnicli -c $_OC_CONFIG_FILE $cli'";
+        local al="alias $cli='omnicli -c $_OC_CONFIG_FILE $cli'";
         eval "$al";
     done
 
