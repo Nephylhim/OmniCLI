@@ -52,6 +52,12 @@ function teardown() {
     [ $(expr "$output" : "test") -ne 0 ]
 }
 
+@test "Test omnicli test:echo with args" {
+    run omnicli -c oc_config test echo 1 2
+    [ "$status" -eq 0 ]
+    [ $(expr "$output" : "test. args=(1 2)") -ne 0 ]
+}
+
 @test "Test inexisting command" {
     run omnicli -c oc_config test unicorn
     [ "$status" -eq 1 ]

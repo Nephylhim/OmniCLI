@@ -33,7 +33,7 @@ A debug helper is available: `test/debug.sh`. TODO: complete
 	* [x] base register
 	* [ ] register only wanted CLIs
 * [ ] Update commands
-* [ ] Use parameters in commands
+* [x] Use parameters in commands
 * [ ] Nested commands
 * [ ] Autocompletion
 * [ ] Reorder commands for listing
