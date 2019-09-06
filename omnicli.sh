@@ -204,10 +204,25 @@ function _oc_list_cli_comands(){
 # TODO: contextualize help if a scope is defined
 function _oc_help() {
     cat << EOF
-Usage: $0 TBD
+Usage: omnicli CLI CMDNAME [ARGUMENTS...]
+Launch a function previously added to OmniCLI.
 
-TODO
+Modifiers:
+  -a, --add         Add a new command to a CLI
+                    omnicli -a CLI CMDNAME 'COMMAND' 'DESCRIPTION'
 
+  -d, --delete      Delete a command
+                    omnicli -d CLI CMDNAME
+
+  -r, --register    Register your CLIs as aliases
+  
+  -h, --help        Show this help
+
+  -l, --list        [CLI]   List available CLIs or CLI commands
+                    omnicli -l          List CLIs
+                    omnicli -l CLI      List CLI's commands
+
+  -c, --config      PATH    Set the configuration file to use
 EOF
 }
 
