@@ -27,13 +27,13 @@
 # ─── INIT ───────────────────────────────────────────────────────────────────────
 #
 
-# usedShell=`ps -hp $$|awk 'END {print $NF;}'`
+_OC_USEDSHELL=`ps -hp $$|awk 'END {print $NF;}'`
 
-# if [[ $usedShell == *"bash"* ]]; then
-#     my_dir="$(dirname "${BASH_SOURCE[0]}")"
-# elif [[ $usedShell == *"zsh"* ]]; then
-#     my_dir="$(dirname "$0")"
-# fi
+if [[ $_OC_USEDSHELL == *"bash"* ]]; then
+    _OC_SHELL="bash"
+elif [[ $_OC_USEDSHELL == *"zsh"* ]]; then
+    _OC_SHELL="zsh"
+fi
 
 # Set debug to 0 by default
 if [[ -z $_OC_DEBUG ]]; then
@@ -170,10 +170,16 @@ function _oc_exec_cli_cmd() {
 
 function _oc_list_clis(){
     local clis;
-    clis="$(sort < "$_OC_CONFIG_FILE" | awk -F '■■' "{print \$$_OC_STRUCT_CLI}" | uniq)";
+    clis="$(sort < "$_OC_CONFIG_FILE" | awk -F '■■' "{print \$$_OC_STRUCT_CLI}" | uniq | xargs -I{} echo -n "{} " | sed -e 's/[[:space:]]*$//')";
+
+    if [[ $_OC_SHELL == "zsh" ]]; then
+        read -r -A clis <<< "$clis"
+    else
+        read -r -a clis <<< "$clis"
+    fi
 
     _echot "Available CLIs:";
-    for cli in $clis; do
+    for cli in "${clis[@]}"; do
         _echot "    - $cli";
     done
 
