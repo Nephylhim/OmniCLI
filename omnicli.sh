@@ -276,11 +276,13 @@ function _oc_add() {
     local cli=$1;
     local cmdName=$2;
     local cmd=$3;
-    local desc=$4;
+    # shellcheck disable=SC2124
+    local desc="${@:4}";
 
     if [ $# -lt 4 ]; then
         _echot "There aren't enough arguments to create a new command.";
         _oc_help;
+        return 1;
     fi
 
     local order;
