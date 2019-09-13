@@ -35,10 +35,6 @@ elif [[ $_OC_USEDSHELL == *"zsh"* ]]; then
     _OC_SHELL="zsh"
 fi
 
-# Set debug to 0 by default
-if [[ -z $_OC_DEBUG ]]; then
-    _OC_DEBUG=0;
-fi
 # Set debug file default
 if [[ -z $_OC_DEBUG_FILE ]]; then
     _OC_DEBUG_FILE="/tmp/ocDebug.log";
@@ -60,14 +56,18 @@ if [[ -z $_OC_AUTO_REGISTER ]]; then
 fi
 
 
+_OC_COLOR_NC='\033[0m' # No Color
+_OC_COLOR_RED='\033[0;31m'
+_OC_COLOR_GREEN='\033[1;32m'
+_OC_COLOR_YELLOW='\033[1;33m'
+_OC_COLOR_BLUE='\033[1;34m'
 # Set default colors
 if [[ -z $_OC_COLOR_1 ]]; then
-    _OC_COLOR_1='\033[0;31m'; # red
+    _OC_COLOR_1=$_OC_COLOR_RED;
 fi
 if [[ -z $_OC_COLOR_2 ]]; then
-    _OC_COLOR_2='\033[1;34m'; # blue
+    _OC_COLOR_2=$_OC_COLOR_BLUE;
 fi
-_NC='\033[0m' # No Color
 
 _OC_STRUCT_CLI='1';
 _OC_STRUCT_CMDORDER='2';
@@ -195,13 +195,38 @@ function _oc_list_cli_comands(){
         return 1;
     fi
 
-    _echot "Available commands for $_OC_COLOR_1$cli$_NC:";
+    _echot "Available commands for $_OC_COLOR_1$cli$_OC_COLOR_NC:";
 
     local commands;
-    commands="$(grep "^$cli" < "$_OC_CONFIG_FILE" | sort | awk -F '■■' "{printf(\"    $_OC_COLOR_2%s$_NC:%s\\n\", \$$_OC_STRUCT_CMDNAME, \$$_OC_STRUCT_DESC)}")";
+    commands="$(grep "^$cli" < "$_OC_CONFIG_FILE" | sort | awk -F '■■' "{printf(\"    $_OC_COLOR_2%s$_OC_COLOR_NC:%s\\n\", \$$_OC_STRUCT_CMDNAME, \$$_OC_STRUCT_DESC)}")";
     _echot "$(echo -e "$commands" | column -s':' -te)";
 
     return $?;
+}
+
+function _oc_init_debug(){
+    _OC_DEBUG=1
+    rm -f "$_OC_DEBUG_FILE" 2> /dev/null
+
+    return 0;
+}
+
+function _oc_print_debug(){
+    local resStatus=$1;
+
+    if [[ $_OC_DEBUG == 1 ]]; then
+        echo -e "\\n\\n${_OC_COLOR_YELLOW}DEBUG:\\n__________________________________________"
+        echo -e "$(cat "$_OC_DEBUG_FILE")"
+
+        echo -e "__________________________________________${_OC_COLOR_NC}"
+        if [[ $resStatus == 0 ]]; then
+            echo -e "${_OC_COLOR_GREEN}omnicli exited with status $resStatus${_OC_COLOR_NC}\\n\\n\\n"
+        else
+            echo -e "${_OC_COLOR_RED}omnicli exited with status $resStatus${_OC_COLOR_NC}\\n\\n\\n"
+        fi
+    fi
+
+    return 0;
 }
 
 # ────────────────────────────────────────────────────────────────────────────────
@@ -361,6 +386,7 @@ function omnicli() {
 
     local args=();
     local action="exec";
+    _OC_DEBUG=0;
 
     # TODO: try getops to retrieve flags/ops
     while [[ $# -gt 0 ]]; do
@@ -374,7 +400,7 @@ function omnicli() {
             '-r'|'--register')  action='register';;
             '-h'|'--help')      action='help';;
             '-l'|'--list')      action='list';;
-            '--debug')          _OC_DEBUG=1;;
+            '--debug')          _oc_init_debug;;
             *)                  args+=("$arg");;
         esac
     done
@@ -395,7 +421,12 @@ function omnicli() {
         'help')     _oc_help;;
     esac
 
-    return $?;
+    local resStatus=$?;
+
+    _debug "DONE"
+    _oc_print_debug "$resStatus";
+
+    return $resStatus;
 }
 
 # ────────────────────────────────────────────────────────────────────────────────
