@@ -122,7 +122,7 @@ function _oc_verify_command_exists() {
 
     # shellcheck disable=SC1087
     # if ! grep -Eq "^$cli$_OC_DELIMITER[0-9]+$_OC_DELIMITER$cmdName$_OC_DELIMITER" "$_OC_CONFIG_FILE"; then
-    if ! grep -Eq "^$cli$_OC_DELIMITER.{2,4}$_OC_DELIMITER$cmdName$_OC_DELIMITER" "$_OC_CONFIG_FILE"; then
+    if ! grep -Eq "^$cli$_OC_DELIMITER.{2}$_OC_DELIMITER$cmdName$_OC_DELIMITER" "$_OC_CONFIG_FILE"; then
         return 1;
     fi
 
@@ -139,14 +139,24 @@ function _oc_count_cli_commands() {
 
 # ────────────────────────────────────────────────────────────────────────────────
 
+function _oc_find_cmd_line() {
+    local cli=$1;
+    local cmdName=$2;
+
+    local line;
+    # shellcheck disable=SC1087
+    line="$(grep -E "^$cli$_OC_DELIMITER.{2}$_OC_DELIMITER$cmdName" < "$_OC_CONFIG_FILE")";
+
+    echo "$line";
+}
+
 # shellcheck disable=SC2005
 function _oc_find_cli_cmd() {
     local cli=$1;
     local cmdName=$2;
 
     local line;
-    # shellcheck disable=SC1087
-    line="$(grep -E "^$cli$_OC_DELIMITER.{2,4}$_OC_DELIMITER$cmdName" < "$_OC_CONFIG_FILE")";
+    line="$(_oc_find_cmd_line "$cli" "$cmdName")"
 
     echo "$(_oc_parse_config "$line" 'cmd')";
 }
@@ -332,12 +342,16 @@ function _oc_delete() {
     fi
 
     local line;
-    line="$(_oc_find_cli_cmd "$cli" "$cmdName")";
+    line="$(_oc_find_cmd_line "$cli" "$cmdName")";
+    _debug "deleting: $line"
     sed -i "/$line/d" "$_OC_CONFIG_FILE";
 
-    _debug "config:\\n$(cat "$_OC_CONFIG_FILE")";
+    _debug "new config:\\n$(cat "$_OC_CONFIG_FILE")\\n__CONFIG END__";
 
-    _echot "The command $cli $cmdName have been deleted.";
+    _echot "The command $cli $cmdName have been deleted.\\n";
+
+    _oc_list_cli_comands "$cli"
+
     return 0;
 }
 
