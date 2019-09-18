@@ -95,3 +95,10 @@ function teardown() {
     [ "$status" -eq 0 ]
     [ $(expr "${lines[3]}" : ".*todel.*command to delete") -eq 0 ]
 }
+
+@test "debug mode" {
+    run omnicli -c oc_config --debug -l
+    [ "$status" -eq 0 ]
+    [ $(expr "${lines[5]}" : "DEBUG.*") -eq 0 ]
+    [ $(expr "${lines[11]}" : "DONE") -eq 0 ]
+}
