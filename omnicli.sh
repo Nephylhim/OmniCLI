@@ -166,7 +166,11 @@ function _oc_exec_cli_cmd() {
     return $?;
 }
 
-# TODO: function sort config file
+function _oc_sort_config() {
+    sort "$_OC_CONFIG_FILE" -o "$_OC_CONFIG_FILE"
+
+    return 0;
+}
 
 function _oc_list_clis(){
     local clis;
@@ -299,6 +303,7 @@ function _oc_add() {
     _debug "new config line:\\n$line";
 
     echo "$line" >> "$_OC_CONFIG_FILE";
+    _oc_sort_config;
 
     _echot "Command $cmdName is created!\\n";
     _oc_list_cli_comands "$cli";
