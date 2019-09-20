@@ -413,6 +413,10 @@ function _oc_register() {
     return 0;
 }
 
+function _oc_edit() {
+    eval "$EDITOR $_OC_CONFIG_FILE";
+}
+
 function _oc_exec() {
     if [ $# -lt 1 ]; then
         _echot "cli must be specified\\n";
@@ -461,6 +465,7 @@ function omnicli() {
         shift;
 
         case $arg in
+            # FIXME: this part change the shell context (next omnicli command will keep this config file)
             '-c'|'--config')    _OC_CONFIG_FILE=$1; shift;;
             '-a'|'--add')       action='add';;
             '-d'|'--delete')    action='delete';;
@@ -468,6 +473,7 @@ function omnicli() {
             '-h'|'--help')      action='help';;
             '-l'|'--list')      action='list';;
             '--debug')          _oc_init_debug;;
+            '--edit')          action='edit';;
             *)                  args+=("$arg");;
         esac
     done
@@ -486,6 +492,7 @@ function omnicli() {
         'list')     _oc_list "${args[@]}";;
         'exec')     _oc_exec "${args[@]}";;
         'help')     _oc_help "${args[@]}";;
+        'edit')     _oc_edit;;
     esac
 
     local resStatus=$?;
