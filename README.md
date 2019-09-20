@@ -75,7 +75,7 @@ TODO: complete
 	* [x] Add and remove commands/CLIs
 	* [x] Listing clis and commands
 	* [x] Use external config file
-* [ ] Write OmniCLI help!
+* [x] Write OmniCLI help!
 * [ ] Register CLIs as aliases
 	* [x] base register
 	* [ ] register only wanted CLIs
@@ -86,4 +86,6 @@ TODO: complete
 * [ ] Reorder commands for listing
 * [ ] Commands shortcuts/aliases?
 * [ ] Importing / exporting CLIs
-* [ ] Improve debug mode
+* [x] Improving debug mode
+* [ ] Installation script
+* [ ] Adding an easter egg
