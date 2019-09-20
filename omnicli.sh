@@ -243,6 +243,31 @@ function _oc_print_debug(){
     return 0;
 }
 
+function _oc_ask_confirmation() {
+    defaultOk=$1;
+    local res;
+    local defaultRes="yes";
+    local defaultInput="[Y/n]";
+
+    if [[ $defaultOk == 0 ]]; then
+        defaultRes="n";
+        defaultInput="[y/N]";
+    fi
+
+    _echot "Do you want to proceed? $defaultInput"
+    read -r res
+    _debug "Input: $res"
+
+    if [[ $res == "" ]]; then
+        res=$defaultRes;
+    fi
+
+    grep -Eiq "y(es)?" <<< "$res"
+    local st=$?
+    _debug "Confirmation: $st"
+    return $st
+}
+
 # ────────────────────────────────────────────────────────────────────────────────
 
 # Print help
@@ -316,7 +341,16 @@ function _oc_add() {
     fi
     _debug "order: $order";
 
-    # TODO: ask confirmation if a whole new cli is created (order=01)
+    # TODO: add --yes | -y flags to auto accept
+    if [ $order -eq "01" ]; then
+        _echot "You are about to create a new CLI."
+        _debug "New CLI, asking confirmation"
+        if ! _oc_ask_confirmation 1; then
+            _debug "Canceling new CLI"
+            return 1;
+        fi
+        _debug "Confirmation OK, creating new CLI"
+    fi
 
     local line;
     line="$cli$_OC_DELIMITER$order$_OC_DELIMITER$cmdName$_OC_DELIMITER$cmd$_OC_DELIMITER$desc";
@@ -328,7 +362,9 @@ function _oc_add() {
     _echot "Command $cmdName is created!\\n";
     _oc_list_cli_comands "$cli";
 
-    # TODO: auto register if new cli
+    if [[ $_OC_AUTO_REGISTER ]]; then
+        _oc_register "$cli"
+    fi
 
     return 0;
 }
