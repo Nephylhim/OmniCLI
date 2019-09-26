@@ -10,8 +10,6 @@ I do love aliases, but they can be limited sometimes. CLIs solve the problem but
 
 OmniCLI is developped to mitigate this issue. It allow to create *simple* CLIs quickly.
 
-/!\ This tool is still in development. Some concept might change a little if necessary. Some features are also missing.
-
 ## Usage
 
 Add a CLI command:
@@ -79,6 +77,12 @@ TODO: complete
 * [x] Register CLIs as aliases
 	* [x] base register
 	* [x] register only wanted CLIs
+* [ ] Improve documentation
+	* [ ] Better description
+	* [ ] More usage examples
+	* [ ] Advanced usages
+	* [ ] Installation
+* [ ] Writing complete CLIs to use
 * [ ] Update commands
 * [x] Use parameters in commands
 * [ ] Nested commands
