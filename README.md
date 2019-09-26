@@ -76,9 +76,9 @@ TODO: complete
 	* [x] Listing clis and commands
 	* [x] Use external config file
 * [x] Write OmniCLI help!
-* [ ] Register CLIs as aliases
+* [x] Register CLIs as aliases
 	* [x] base register
-	* [ ] register only wanted CLIs
+	* [x] register only wanted CLIs
 * [ ] Update commands
 * [x] Use parameters in commands
 * [ ] Nested commands

@@ -402,13 +402,32 @@ function _oc_delete() {
 }
 
 function _oc_register() {
-    # TODO: if a scope is defined, only register the scope
     # TODO: verify command doesn't already exist
 
-    for cli in $(awk -F "$_OC_DELIMITER" '{print $1}' < "$_OC_CONFIG_FILE" | uniq); do
-        local al="alias $cli='omnicli -c $_OC_CONFIG_FILE $cli'";
-        eval "$al";
-    done
+    clis=("$@")
+
+    if [[ ${#clis[*]} == 0 ]]; then
+        _debug "No scope. Registering all clis"
+        for cli in $(awk -F "$_OC_DELIMITER" '{print $1}' < "$_OC_CONFIG_FILE" | uniq); do
+            _debug "Registering $cli"
+            local al="alias $cli='omnicli -c $_OC_CONFIG_FILE $cli'";
+            eval "$al";
+        done
+    else
+        _debug "Scope present. Registering scoped clis"
+        for cli in "${clis[@]}"; do
+            if ! _oc_verify_cli_exists "$cli"; then
+                _echot "CLI $cli does not exist. Skip registration";
+                _debug "CLI $cli does not exist. Skip registration";
+                continue;
+            fi
+
+            _debug "Registering $cli"
+            local al="alias $cli='omnicli -c $_OC_CONFIG_FILE $cli'";
+            eval "$al";
+        done
+    fi
+
 
     return 0;
 }
@@ -488,7 +507,7 @@ function omnicli() {
     case $action in
         'add')      _oc_add "${args[@]}";;
         'delete')   _oc_delete "${args[@]}";;
-        'register') _oc_register;;
+        'register') _oc_register "${args[@]}";;
         'list')     _oc_list "${args[@]}";;
         'exec')     _oc_exec "${args[@]}";;
         'help')     _oc_help "${args[@]}";;
