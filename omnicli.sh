@@ -27,7 +27,7 @@
 # ─── INIT ───────────────────────────────────────────────────────────────────────
 #
 
-_OC_USEDSHELL=`ps -hp $$|awk 'END {print $NF;}'`
+_OC_USEDSHELL="$(ps -hp $$|awk 'END {print $NF;}')"
 
 if [[ $_OC_USEDSHELL == *"bash"* ]]; then
     _OC_SHELL="bash"
@@ -45,10 +45,13 @@ if [[ -z $_OC_DELIMITER ]]; then
     _OC_DELIMITER='■■';
 fi
 
+
 # Set default config file path if it isn't set
-if [[ -z $_OC_CONFIG_FILE ]]; then
-    _OC_CONFIG_FILE="$HOME/.omnicli";
+if [[ -z $_OC_DEFAULT_CONFIG_FILE ]]; then
+    _OC_DEFAULT_CONFIG_FILE="$HOME/.omnicli";
 fi
+# declare config file var 
+_OC_CONFIG_FILE="";
 
 # Set auto register default
 if [[ -z $_OC_AUTO_REGISTER ]]; then
@@ -444,7 +447,7 @@ function _oc_exec() {
     fi
     if [ $# -lt 2 ]; then
         _echot "command must be specified\\n";
-        _oc_help;
+        _oc_help "$@";
         return 1;
     fi
 
@@ -469,6 +472,8 @@ function _oc_exec() {
 #
 
 function omnicli() {
+    _OC_CONFIG_FILE=$_OC_DEFAULT_CONFIG_FILE
+
     if [[ $# == 0 ]]; then
         _oc_help;
         return 1;
